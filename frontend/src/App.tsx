@@ -23,7 +23,9 @@ export default function App() {
             <Route path="/images" element={<ImageExplorer />} />
             <Route path="/architecture" element={<ArchitectureStudio />} />
             <Route path="/training" element={<TrainingControlRoom />} />
+            <Route path="/training/:id" element={<TrainingControlRoom />} />
             <Route path="/predictions" element={<PredictionAnalysis />} />
+            <Route path="/predictions/:id" element={<PredictionAnalysis />} />
             <Route path="/benchmark" element={<BenchmarkWorkspace />} />
             <Route path="/library" element={<ExperimentLibrary />} />
             <Route path="/docs" element={<Documentation />} />
