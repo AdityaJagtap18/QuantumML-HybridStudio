@@ -1,0 +1,38 @@
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/app/**/__pycache__/
+backend/.pytest_cache/
+backend/data/*.db
+**/__pycache__/
+*.pyc
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+
+# Env
+.env
+.env.local
+
+# Artifacts & datasets (generated, not versioned)
+artifacts/checkpoints/*
+!artifacts/checkpoints/.gitkeep
+artifacts/plots/*
+!artifacts/plots/.gitkeep
+artifacts/reports/*
+!artifacts/reports/.gitkeep
+data/*
+!data/.gitkeep
+!data/README.md
+experiments/research_runs/*
+!experiments/research_runs/.gitkeep
+
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+
+# OS
+.DS_Store
