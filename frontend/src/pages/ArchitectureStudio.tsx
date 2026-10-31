@@ -28,7 +28,9 @@ const DEFAULT_ARCHITECTURE: ArchitectureConfig = {
     ansatz_reps: 2,
     entanglement: "linear",
     qnn_type: "estimator",
+    execution_mode: "ideal",
     shots: 1024,
+    noise: { enabled: false, depolarizing_prob: 0.02, readout_error_prob: 0.02 },
   },
   head: { n_outputs: 1 },
 };

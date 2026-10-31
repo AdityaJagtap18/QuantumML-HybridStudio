@@ -271,6 +271,72 @@ export function PropertyInspector({
           </select>
         </Field>
 
+        <Field label="Execution">
+          <select
+            className={inputCls}
+            value={q.execution_mode}
+            onChange={(e) =>
+              onChange({
+                ...architecture,
+                quantum_layer: {
+                  ...q,
+                  execution_mode: e.target.value as any,
+                  noise: { ...q.noise, enabled: e.target.value === "noisy" },
+                },
+              })
+            }
+          >
+            <option value="ideal">Ideal (exact statevector)</option>
+            <option value="noisy">Noisy (synthetic Aer noise)</option>
+          </select>
+        </Field>
+
+        {q.execution_mode === "noisy" && (
+          <>
+            <Field label="Shots">
+              <input
+                type="number"
+                className={inputCls}
+                min={16}
+                max={20000}
+                step={16}
+                value={q.shots}
+                onChange={(e) => onChange({ ...architecture, quantum_layer: { ...q, shots: Number(e.target.value) } })}
+              />
+            </Field>
+            <Field label="Depolarizing error prob.">
+              <input
+                type="number"
+                className={inputCls}
+                min={0}
+                max={1}
+                step={0.01}
+                value={q.noise.depolarizing_prob}
+                onChange={(e) =>
+                  onChange({ ...architecture, quantum_layer: { ...q, noise: { ...q.noise, depolarizing_prob: Number(e.target.value) } } })
+                }
+              />
+            </Field>
+            <Field label="Readout error prob.">
+              <input
+                type="number"
+                className={inputCls}
+                min={0}
+                max={1}
+                step={0.01}
+                value={q.noise.readout_error_prob}
+                onChange={(e) =>
+                  onChange({ ...architecture, quantum_layer: { ...q, noise: { ...q.noise, readout_error_prob: Number(e.target.value) } } })
+                }
+              />
+            </Field>
+            <p className="text-xs text-muted">
+              Synthetic, configurable noise — not a calibration of any real device. Training and test-time execution
+              both use this noise model consistently for this run.
+            </p>
+          </>
+        )}
+
         {circuitError && <p className="text-xs text-danger">{circuitError}</p>}
         {circuitPreview && (
           <div className="border-t border-border pt-3">

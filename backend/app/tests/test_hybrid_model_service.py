@@ -15,18 +15,26 @@ from torch import nn
 from app.schemas.architecture import (
     ArchitectureConfig,
     MLPExtractorConfig,
+    NoiseConfig,
     ProjectionConfig,
     QuantumLayerConfig,
 )
 from app.services import hybrid_model_service
 
 
-def _hybrid_config(qnn_type: str = "estimator") -> ArchitectureConfig:
+def _hybrid_config(qnn_type: str = "estimator", noisy: bool = False) -> ArchitectureConfig:
     return ArchitectureConfig(
         model_kind="hybrid_mlp_qnn",
         mlp_extractor=MLPExtractorConfig(hidden_dims=[8]),
         projection=ProjectionConfig(),
-        quantum_layer=QuantumLayerConfig(n_qubits=2, qnn_type=qnn_type, ansatz_reps=1),
+        quantum_layer=QuantumLayerConfig(
+            n_qubits=2,
+            qnn_type=qnn_type,
+            ansatz_reps=1,
+            execution_mode="noisy" if noisy else "ideal",
+            shots=256,
+            noise=NoiseConfig(enabled=True, depolarizing_prob=0.02, readout_error_prob=0.02) if noisy else NoiseConfig(),
+        ),
     )
 
 
@@ -95,6 +103,25 @@ def test_sampler_qnn_variant_also_trains_end_to_end():
 
     assert model[2].weight.grad is not None
     assert float(model[2].weight.grad.abs().sum()) > 0.0
+
+
+def test_noisy_estimator_qnn_still_trains_end_to_end():
+    """The noisy (Aer + synthetic noise model) execution path must be
+    just as genuinely trainable as the ideal path -- noise changes the
+    simulated readout, not whether gradients propagate."""
+    bundle = hybrid_model_service.build_model(_hybrid_config(noisy=True), image_height=8, image_width=8)
+    model = bundle.model
+    extractor_first_layer = model[0][0]
+    quantum_layer = model[2]
+
+    X = torch.randn(4, 64)
+    y = torch.randint(0, 2, (4, 1)).float()
+    out = model(X)
+    loss = nn.functional.binary_cross_entropy_with_logits(out, y)
+    loss.backward()
+
+    assert float(extractor_first_layer.weight.grad.abs().sum()) > 0.0
+    assert float(quantum_layer.weight.grad.abs().sum()) > 0.0
 
 
 def test_classical_only_model_has_no_quantum_parameters():

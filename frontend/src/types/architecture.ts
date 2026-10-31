@@ -4,6 +4,13 @@ export type FeatureMapType = "ZFeatureMap" | "ZZFeatureMap";
 export type AnsatzType = "RealAmplitudes" | "EfficientSU2";
 export type QNNType = "estimator" | "sampler";
 export type Entanglement = "linear" | "circular" | "full";
+export type ExecutionMode = "ideal" | "noisy";
+
+export interface NoiseConfig {
+  enabled: boolean;
+  depolarizing_prob: number;
+  readout_error_prob: number;
+}
 
 export interface PreprocessingConfig {
   normalize: boolean;
@@ -39,7 +46,9 @@ export interface QuantumLayerConfig {
   ansatz_reps: number;
   entanglement: Entanglement;
   qnn_type: QNNType;
+  execution_mode: ExecutionMode;
   shots: number;
+  noise: NoiseConfig;
 }
 
 export interface ClassificationHeadConfig {

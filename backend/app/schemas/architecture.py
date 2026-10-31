@@ -8,6 +8,7 @@ FeatureMapType = Literal["ZFeatureMap", "ZZFeatureMap"]
 AnsatzType = Literal["RealAmplitudes", "EfficientSU2"]
 QNNType = Literal["estimator", "sampler"]
 Entanglement = Literal["linear", "circular", "full"]
+ExecutionMode = Literal["ideal", "noisy"]
 
 
 class PreprocessingConfig(BaseModel):
@@ -36,6 +37,12 @@ class ProjectionConfig(BaseModel):
     normalize: bool = True
 
 
+class NoiseConfig(BaseModel):
+    enabled: bool = False
+    depolarizing_prob: float = Field(default=0.01, ge=0.0, le=1.0)
+    readout_error_prob: float = Field(default=0.01, ge=0.0, le=1.0)
+
+
 class QuantumLayerConfig(BaseModel):
     n_qubits: int = Field(ge=1, le=6)
     feature_map: FeatureMapType = "ZZFeatureMap"
@@ -44,7 +51,9 @@ class QuantumLayerConfig(BaseModel):
     ansatz_reps: int = Field(default=2, ge=1, le=5)
     entanglement: Entanglement = "linear"
     qnn_type: QNNType = "estimator"
+    execution_mode: ExecutionMode = "ideal"
     shots: int = Field(default=1024, ge=16, le=20000)
+    noise: NoiseConfig = NoiseConfig()
 
 
 class ClassificationHeadConfig(BaseModel):

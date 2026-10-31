@@ -11,13 +11,15 @@ docs/IMPLEMENTATION_PLAN.md).
 from dataclasses import dataclass
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import real_amplitudes, zz_feature_map, z_feature_map
+from qiskit.circuit.library import efficient_su2, real_amplitudes, z_feature_map, zz_feature_map
 from qiskit.primitives import StatevectorEstimator, StatevectorSampler
-from qiskit.circuit.library import efficient_su2
+from qiskit_aer.primitives import EstimatorV2 as AerEstimator
+from qiskit_aer.primitives import SamplerV2 as AerSampler
 from qiskit_machine_learning.connectors import TorchConnector
 from qiskit_machine_learning.neural_networks import EstimatorQNN, SamplerQNN
 
 from app.schemas.architecture import QuantumLayerConfig
+from app.services import noise_service
 
 
 def build_feature_map(config: QuantumLayerConfig) -> QuantumCircuit:
@@ -63,6 +65,29 @@ def summarize(feature_map: QuantumCircuit, ansatz: QuantumCircuit, combined: Qua
     )
 
 
+def _build_estimator(config: QuantumLayerConfig):
+    """Ideal uses the exact StatevectorEstimator (no sampling noise at
+    all); noisy uses Aer's EstimatorV2 with a synthetic noise model and a
+    precision derived from the configured shot count — confirmed
+    empirically that AerEstimatorV2 takes `default_precision` (not
+    `default_shots`, unlike AerSampler) via its `options` dict."""
+    if config.execution_mode == "ideal":
+        return StatevectorEstimator()
+    noise_model = noise_service.build_noise_model(config.noise, config.n_qubits)
+    options = {"default_precision": 1.0 / max(config.shots, 1) ** 0.5}
+    if noise_model is not None:
+        options["backend_options"] = {"noise_model": noise_model}
+    return AerEstimator(options=options)
+
+
+def _build_sampler(config: QuantumLayerConfig):
+    if config.execution_mode == "ideal":
+        return StatevectorSampler()
+    noise_model = noise_service.build_noise_model(config.noise, config.n_qubits)
+    options = {"backend_options": {"noise_model": noise_model}} if noise_model is not None else {}
+    return AerSampler(default_shots=config.shots, options=options)
+
+
 def build_quantum_layer(config: QuantumLayerConfig) -> TorchConnector:
     feature_map = build_feature_map(config)
     ansatz = build_ansatz(config)
@@ -71,7 +96,7 @@ def build_quantum_layer(config: QuantumLayerConfig) -> TorchConnector:
     if config.qnn_type == "estimator":
         qnn = EstimatorQNN(
             circuit=combined,
-            estimator=StatevectorEstimator(),
+            estimator=_build_estimator(config),
             input_params=list(feature_map.parameters),
             weight_params=list(ansatz.parameters),
             input_gradients=True,
@@ -79,7 +104,7 @@ def build_quantum_layer(config: QuantumLayerConfig) -> TorchConnector:
     else:
         qnn = SamplerQNN(
             circuit=combined,
-            sampler=StatevectorSampler(),
+            sampler=_build_sampler(config),
             input_params=list(feature_map.parameters),
             weight_params=list(ansatz.parameters),
             interpret=lambda x: x % 2,
